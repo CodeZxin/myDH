@@ -8,7 +8,7 @@ def send_request(data):
     # url = "http://dsfay.s7.tunnelfrp.com/v1/chat/completions"
     url = f"http://localhost:11434/api/chat"
     headers = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
         # 'Authorization': 'Bearer sk-4Spva89SGSikpacz3a70Dd081cA84c9a8dEd345f19C9BdFc'
     }
     try:
@@ -17,6 +17,7 @@ def send_request(data):
         # result = response.json()
         # response_text = result["choices"][0]["message"]["content"]
         result = json.loads(response.text)
+        # print(result)
         response_text = result["message"]["content"]
     except requests.exceptions.RequestException as e:
         print(f"请求失败: {e}")
@@ -26,7 +27,7 @@ def send_request(data):
 def question(content):
     messages = [{"role": "system", "content": prompt}, {"role": "user", "content": content}]
     data = {
-        "model": "llama3.2:1b",
+        "model": "qwen2.5:0.5b",
         "messages": messages,
         # "temperature": 0.3,
         # "max_tokens": 2000,

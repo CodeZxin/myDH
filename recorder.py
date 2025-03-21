@@ -34,6 +34,7 @@ class Recorder:
         self.channels = 1
         self.sample_rate = 16000
         self.stream = None
+        self.id = 0
 
     def addjust_dynamic_threshold(self, number=30):
         total = 0
@@ -92,7 +93,7 @@ class Recorder:
             if not data:
                 continue 
 
-            if self.dh.speaking == True:#掉弃录音
+            if self.dh.speaking == True:#丢弃录音
                 data = None
                 continue
 
@@ -120,8 +121,7 @@ class Recorder:
                         while not self.asr.started:
                             time.sleep(0.01)
                         for i in range(len(self.__history_data) - 1): #当前data在下面会做发送，这里是发送激活前的音频数据，以免漏掉信息
-                            buf = self.__history_data[i]
-                            audio_data_list.append(self.__process_audio_data(buf, self.channels))
+                            audio_data_list.append(self.__history_data[i])
                         self.__history_data.clear()
                 else:#结束拾音
                     last_mute_time = time.time()
@@ -130,30 +130,30 @@ class Recorder:
                             isSpeaking = False
                             self.asr.end()
                             print("语音处理中...")
-                            mono_data = data = np.concatenate(audio_data_list)
-                            self.__waitingResult(self.asr, mono_data)
-                            self.__save_audio_to_wav(mono_data, self.sample_rate, "record/input.wav")
+                            # mono_data = data = np.concatenate(audio_data_list)
+                            # self.__waitingResult(self.asr, mono_data)
+                            self.__save_audio_to_wav(audio_data_list, f"record/input{self.id}.wav")
+                            self.id += 1
                             audio_data_list = []   
                 #拾音中
                 if isSpeaking:
-                    audio_data_list.append(self.__process_audio_data(data, self.channels))
+                    audio_data_list.append(data)
             except Exception as e:
                 print("录音失败: " + str(e))
 
-    def __save_audio_to_wav(self, data, sample_rate, filename):
-        # 确保数据类型为 int16
-        if data.dtype != np.int16:
-            data = data.astype(np.int16)
+    def __save_audio_to_wav(self, data, filename):
+        # # 确保数据类型为 int16
+        # if data.dtype != np.int16:
+        #     data = data.astype(np.int16)
         
-        # 打开 WAV 文件
+        # # 打开 WAV 文件
         with wave.open(filename, 'wb') as wf:
-            # 设置音频参数
-            n_channels = 1  # 单声道
-            sampwidth = 2   # 16 位音频，每个采样点 2 字节
-            wf.setnchannels(n_channels)
-            wf.setsampwidth(sampwidth)
-            wf.setframerate(sample_rate)
-            wf.writeframes(data.tobytes())
+            # sampwidth = 2   # 16 位音频，每个采样点 2 字节
+            wf.setnchannels(1)
+            wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paInt16))
+            wf.setframerate(self.sample_rate)
+            # wf.writeframes(data.tobytes())
+            wf.writeframes(b''.join(data))
 
     def save_buffer_to_file(self, buffer):
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav", dir="record")
@@ -165,16 +165,16 @@ class Recorder:
         wf.close()
         return temp_file.name
     
-    #转变为单声道np.int16
-    def __process_audio_data(self, data, channels):
-        data = bytearray(data)
-        # 将字节数据转换为 numpy 数组
-        data = np.frombuffer(data, dtype=np.int16)
-        # 重塑数组，将数据分离成多个声道
-        data = np.reshape(data, (-1, channels))
-        # 对所有声道的数据进行平均，生成单声道
-        mono_data = np.mean(data, axis=1).astype(np.int16)
-        return mono_data
+    # #转变为单声道np.int16
+    # def __process_audio_data(self, data, channels):
+    #     data = bytearray(data)
+    #     # 将字节数据转换为 numpy 数组
+    #     data = np.frombuffer(data, dtype=np.int16)
+    #     # 重塑数组，将数据分离成多个声道
+    #     data = np.reshape(data, (-1, channels))
+    #     # 对所有声道的数据进行平均，生成单声道
+    #     mono_data = np.mean(data, axis=1).astype(np.int16)
+    #     return mono_data
      
     def set_processing(self, processing):
         self.__processing = processing
@@ -202,13 +202,13 @@ class RecorderListener(Recorder):
 
     def __init__(self):
         super().__init__()
-        self.__device = 'device'
-        self.__FORMAT = pyaudio.paInt16
+        # self.__device = 'device'
+        # self.__FORMAT = pyaudio.paInt16
         # self.__running = False
-        self.username = 'User'
+        # self.username = 'User'
         # 这两个参数会在 get_stream 中根据实际设备更新
-        self.channels = None
-        self.sample_rate = None
+        # self.channels = None
+        # self.sample_rate = None
 
     def on_speaking(self, text):
         if len(text) > 1:
@@ -220,6 +220,8 @@ class RecorderListener(Recorder):
             
             # 获取默认输入设备的信息
             default_device = self.paudio.get_default_input_device_info()
+            print(f"默认麦克风: {default_device.get('name')}")
+            return
             self.channels = min(int(default_device.get('maxInputChannels', 1)), 2)  # 最多使用2个通道
             self.sample_rate = int(default_device.get('defaultSampleRate', 16000))
             
@@ -227,7 +229,7 @@ class RecorderListener(Recorder):
             
             # 使用系统默认麦克风
             self.stream = self.paudio.open(
-                format=self.__FORMAT,
+                format=pyaudio.paInt16,
                 channels=self.channels,
                 rate=self.sample_rate,
                 input=True,

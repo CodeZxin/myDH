@@ -110,6 +110,7 @@ class MyServer:
         self.on_connect_handler()
         remote_address = websocket.remote_address
         unique_id = f"{remote_address[0]}:{remote_address[1]}"
+        print(unique_id)
         async with self.lock:
             self.__clients.append({"id": unique_id, "websocket": websocket, "username": "User"})
         consumer_task = asyncio.create_task(self.__consumer_handler(websocket, path))  # 接收

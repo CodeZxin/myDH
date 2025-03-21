@@ -1,0 +1,29 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字人</title>
+</head>
+
+<body>
+    <video id="videoPlayer" width="576" height="768" muted autoplay>
+        <source src="sun.mp4" type="video/mp4">
+    </video>
+
+    <script>
+        // 获取视频元素
+        const videoPlayer = document.getElementById('videoPlayer');
+
+        // 添加事件监听器，当视频播放结束时重新播放
+        videoPlayer.addEventListener('ended', () => {
+            videoPlayer.currentTime = 0; // 重置视频播放时间
+            videoPlayer.play(); // 重新播放
+        });
+
+        // 自动播放视频（可选）
+        videoPlayer.play();
+    </script>
+</body>
+
+</html>
